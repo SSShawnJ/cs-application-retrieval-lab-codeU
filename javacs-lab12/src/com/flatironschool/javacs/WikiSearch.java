@@ -1,13 +1,14 @@
 package com.flatironschool.javacs;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 
 import redis.clients.jedis.Jedis;
 
@@ -60,8 +61,21 @@ public class WikiSearch {
 	 * @return New WikiSearch object.
 	 */
 	public WikiSearch or(WikiSearch that) {
-        // FILL THIS IN!
-		return null;
+		Map<String,Integer> orMap=new HashMap<>();
+		for(String thisKey:this.map.keySet()){
+			orMap.put(thisKey,this.getRelevance(thisKey));
+		}
+		
+		for(String thatKey:that.map.keySet()){
+			if(orMap.containsKey(thatKey)){
+				int newRelavance=orMap.get(thatKey)+that.getRelevance(thatKey);
+				orMap.replace(thatKey,newRelavance);
+			}
+			else{
+				orMap.put(thatKey,that.getRelevance(thatKey));
+			}
+		}
+		return new WikiSearch(orMap);
 	}
 	
 	/**
@@ -71,8 +85,16 @@ public class WikiSearch {
 	 * @return New WikiSearch object.
 	 */
 	public WikiSearch and(WikiSearch that) {
-        // FILL THIS IN!
-		return null;
+        Map<String,Integer> andMap=new HashMap<>();
+        Set<String> keySet=this.map.size()>that.map.size()?that.map.keySet():this.map.keySet();
+        for(String key:keySet){
+        	int thisR=this.getRelevance(key);
+        	int thatR=that.getRelevance(key);
+        	if(thisR!=0 && thatR!=0){
+        		andMap.put(key, thisR+thatR);
+        	}
+        }
+		return new WikiSearch(andMap);
 	}
 	
 	/**
@@ -82,8 +104,13 @@ public class WikiSearch {
 	 * @return New WikiSearch object.
 	 */
 	public WikiSearch minus(WikiSearch that) {
-        // FILL THIS IN!
-		return null;
+        Map<String,Integer> minusMap=new HashMap<>();
+        for(String key:this.map.keySet()){
+        	if(!that.map.containsKey(key)){
+        		minusMap.put(key, this.getRelevance(key));
+        	}
+        }
+		return new WikiSearch(minusMap);
 	}
 	
 	/**
@@ -104,8 +131,20 @@ public class WikiSearch {
 	 * @return List of entries with URL and relevance.
 	 */
 	public List<Entry<String, Integer>> sort() {
-        // FILL THIS IN!
-		return null;
+        Comparator<Entry<String,Integer>> comparator=new Comparator<Entry<String,Integer>>(){
+
+			@Override
+			public int compare(Entry<String, Integer> o1, Entry<String, Integer> o2) {
+				if(o1.getValue()>o2.getValue()) return 1;
+				else if(o1.getValue()<o2.getValue()) return-1;
+				else return 0;
+			}	
+        };
+        
+        List<Entry<String,Integer>> list=new ArrayList<>();
+        list.addAll(this.map.entrySet());
+        Collections.sort(list, comparator);
+		return list;
 	}
 
 	/**
